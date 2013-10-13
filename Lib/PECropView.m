@@ -353,6 +353,7 @@ static const CGFloat MarginRight = MarginLeft;
 
 - (void)automaticZoomIfEdgeTouched:(CGRect)cropRect
 {
+    //Bug in here. edge touch movement make cropRect change(anchor broken) with zoom.
     if (CGRectGetMinX(cropRect) < CGRectGetMinX(self.editingRect) - 5.0f ||
         CGRectGetMaxX(cropRect) > CGRectGetMaxX(self.editingRect) + 5.0f ||
         CGRectGetMinY(cropRect) < CGRectGetMinY(self.editingRect) - 5.0f ||
