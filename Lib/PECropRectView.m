@@ -27,6 +27,8 @@
 
 @implementation PECropRectView
 
+@synthesize touchingControlDirection;
+
 - (id)initWithFrame:(CGRect)frame
 {
     self = [super initWithFrame:frame];
@@ -197,6 +199,8 @@
                           CGRectGetMinY(self.initialRect) + resizeControlView.translation.y,
                           CGRectGetWidth(self.initialRect),
                           CGRectGetHeight(self.initialRect) - resizeControlView.translation.y);
+
+        touchingControlDirection = Top;
         
         if (self.keepingAspectRatio) {
             rect = [self constrainedRectWithRectBasisOfHeight:rect aspectRatio:self.fixedAspectRatio];
@@ -207,6 +211,8 @@
                           CGRectGetWidth(self.initialRect) - resizeControlView.translation.x,
                           CGRectGetHeight(self.initialRect));
         
+        touchingControlDirection = Left;
+        
         if (self.keepingAspectRatio) {
             rect = [self constrainedRectWithRectBasisOfWidth:rect aspectRatio:self.fixedAspectRatio];
         }
@@ -215,6 +221,8 @@
                           CGRectGetMinY(self.initialRect),
                           CGRectGetWidth(self.initialRect),
                           CGRectGetHeight(self.initialRect) + resizeControlView.translation.y);
+        
+        touchingControlDirection = Bottom;
         
         if (self.keepingAspectRatio) {
             rect = [self constrainedRectWithRectBasisOfHeight:rect aspectRatio:self.fixedAspectRatio];
@@ -225,6 +233,8 @@
                           CGRectGetWidth(self.initialRect) + resizeControlView.translation.x,
                           CGRectGetHeight(self.initialRect));
         
+        touchingControlDirection = Right;
+        
         if (self.keepingAspectRatio) {
             rect = [self constrainedRectWithRectBasisOfWidth:rect aspectRatio:self.fixedAspectRatio];
         }
@@ -233,6 +243,8 @@
                           CGRectGetMinY(self.initialRect) + resizeControlView.translation.y,
                           CGRectGetWidth(self.initialRect) - resizeControlView.translation.x,
                           CGRectGetHeight(self.initialRect) - resizeControlView.translation.y);
+        
+        touchingControlDirection = TopLeft;
         
         if (self.keepingAspectRatio) {
             CGRect constrainedRect;
@@ -251,6 +263,8 @@
                           CGRectGetWidth(self.initialRect) + resizeControlView.translation.x,
                           CGRectGetHeight(self.initialRect) - resizeControlView.translation.y);
         
+        touchingControlDirection = TopRight;
+        
         if (self.keepingAspectRatio) {
             if (fabsf(resizeControlView.translation.x) < fabsf(resizeControlView.translation.y)) {
                 rect = [self constrainedRectWithRectBasisOfHeight:rect aspectRatio:self.fixedAspectRatio];
@@ -263,6 +277,8 @@
                           CGRectGetMinY(self.initialRect),
                           CGRectGetWidth(self.initialRect) - resizeControlView.translation.x,
                           CGRectGetHeight(self.initialRect) + resizeControlView.translation.y);
+        
+        touchingControlDirection = BottomLeft;
         
         if (self.keepingAspectRatio) {
             CGRect constrainedRect;
@@ -279,6 +295,8 @@
                           CGRectGetMinY(self.initialRect),
                           CGRectGetWidth(self.initialRect) + resizeControlView.translation.x,
                           CGRectGetHeight(self.initialRect) + resizeControlView.translation.y);
+        
+        touchingControlDirection = BottomRight;
         
         if (self.keepingAspectRatio) {
             if (fabsf(resizeControlView.translation.x) < fabsf(resizeControlView.translation.y)) {

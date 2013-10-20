@@ -15,7 +15,9 @@ static const CGFloat MarginBottom = MarginTop;
 static const CGFloat MarginLeft = 20.0f;
 static const CGFloat MarginRight = MarginLeft;
 
-@interface PECropView () <UIScrollViewDelegate, UIGestureRecognizerDelegate>
+@interface PECropView () <UIScrollViewDelegate, UIGestureRecognizerDelegate> {
+    NSTimer *autoZoomTimer;
+}
 
 @property (nonatomic) UIScrollView *scrollView;
 @property (nonatomic) UIView *zoomingView;
@@ -353,19 +355,80 @@ static const CGFloat MarginRight = MarginLeft;
 
 - (void)automaticZoomIfEdgeTouched:(CGRect)cropRect
 {
-    //Bug in here. edge touch movement make cropRect change(anchor broken) with zoom.
     if (CGRectGetMinX(cropRect) < CGRectGetMinX(self.editingRect) - 5.0f ||
         CGRectGetMaxX(cropRect) > CGRectGetMaxX(self.editingRect) + 5.0f ||
         CGRectGetMinY(cropRect) < CGRectGetMinY(self.editingRect) - 5.0f ||
-        CGRectGetMaxY(cropRect) > CGRectGetMaxY(self.editingRect) + 5.0f) {
-        [UIView animateWithDuration:1.0
-                              delay:0.0
-                            options:UIViewAnimationOptionBeginFromCurrentState
-                         animations:^{
-                             [self zoomToCropRect:self.cropRectView.frame];
-                         } completion:^(BOOL finished) {
-                             
-                         }];
+        CGRectGetMaxY(cropRect) > CGRectGetMaxY(self.editingRect) + 5.0f)
+    {
+        if (!autoZoomTimer) {
+            NSTimer *automaticZoomTimer = [NSTimer scheduledTimerWithTimeInterval:(1.0 / 60.0) target:self selector:@selector(automaticZoomTimerFired:) userInfo:self.cropRectView repeats:YES];
+            autoZoomTimer = automaticZoomTimer;
+        }
+    }
+    else {
+        [autoZoomTimer invalidate];
+        autoZoomTimer = nil;
+    }
+}
+
+- (void)automaticZoomTimerFired:(NSTimer *)timer
+{
+    //Little bug in here. anchor point slightly moving about 2.0f?
+    PECropRectView *cropRectView = timer.userInfo;
+    if (self.resizing) {
+        CGRect cropRect = cropRectView.frame;
+        CGRect zoomRect = [self convertRect:cropRect toView:self.zoomingView];
+        
+        float dx = 1.0f;
+        float dy = dx * CGRectGetHeight(cropRect) / CGRectGetWidth(cropRect);
+
+        zoomRect.size.width += dx;
+        zoomRect.size.height += dy;
+        
+        switch (self.cropRectView.touchingControlDirection) {
+            case TopLeft: {
+                zoomRect.origin.x -= dx;
+                zoomRect.origin.y -= dy;
+                break;
+            }
+            case Top: {
+                zoomRect.origin.y -= dy;
+                break;
+            }
+            case TopRight: {
+                zoomRect.origin.y -= dy;
+                break;
+            }
+            case Right: {
+                break;
+            }
+            case BottomRight: {
+                break;
+            }
+            case Bottom: {
+                break;
+            }
+            case BottomLeft: {
+                zoomRect.origin.x -= dx;
+                break;
+            }
+            case Left: {
+                zoomRect.origin.x -= dx;
+                break;
+            }
+                
+        }
+
+        if (CGRectContainsRect(self.zoomingView.bounds, zoomRect)) {
+            self.scrollView.frame = cropRect;
+            [self.scrollView zoomToRect:zoomRect animated:NO];
+            
+            [self layoutCropRectViewWithCropRect:cropRect];
+        }
+    }
+    else {
+        [autoZoomTimer invalidate];
+        autoZoomTimer = nil;
     }
 }
 
@@ -417,13 +480,121 @@ static const CGFloat MarginRight = MarginLeft;
                           delay:0.0
                         options:UIViewAnimationOptionBeginFromCurrentState
                      animations:^{
-                         self.scrollView.bounds = cropRect;
+                         self.scrollView.frame = cropRect;
                          [self.scrollView zoomToRect:zoomRect animated:NO];
                          
                          [self layoutCropRectViewWithCropRect:cropRect];
                      } completion:^(BOOL finished) {
                          
                      }];
+}
+
+- (void)zoomToCropRect:(CGRect)toRect withDuration:(float)duration
+{
+    if (CGRectEqualToRect(self.scrollView.frame, toRect)) {
+        return;
+    }
+    
+    CGFloat width = CGRectGetWidth(toRect);
+    CGFloat height = CGRectGetHeight(toRect);
+    
+    CGFloat scale;
+    
+    CGRect cropRect;
+    CGRect zoomRect;
+    if (self.resizing) {
+        // Case automatic zooming
+        
+        if (CGRectGetMinX(toRect) < CGRectGetMinX(self.editingRect) - 5.0f ||
+            CGRectGetMaxX(toRect) > CGRectGetMaxX(self.editingRect) + 5.0f ||
+            CGRectGetMinY(toRect) < CGRectGetMinY(self.editingRect) - 5.0f ||
+            CGRectGetMaxY(toRect) > CGRectGetMaxY(self.editingRect) + 5.0f)
+        {
+            scale = 1.0f;
+        }
+        
+        cropRect = CGRectMake(toRect.origin.x, toRect.origin.y, width, height);
+        zoomRect = [self convertRect:cropRect toView:self.zoomingView];
+        
+        float dx = 1.0f;
+        float dy = dx * height / width;
+        
+        CGRect testerRect = CGRectMake(zoomRect.origin.x, zoomRect.origin.y, zoomRect.size.width, zoomRect.size.height);
+        testerRect.size.width += dx;
+        testerRect.size.height += dy;
+        
+        switch (self.cropRectView.touchingControlDirection) {
+            case TopLeft: {
+                testerRect.origin.x -= dx;
+                testerRect.origin.y -= dy;
+                break;
+            }
+            case Top: {
+                testerRect.origin.x -= dx / 2;
+                testerRect.origin.y -= dy;
+                break;
+            }
+            case TopRight: {
+                testerRect.origin.y -= dy;
+                break;
+            }
+            case Right: {
+                //                testerRect.origin.y -= dy / 2;
+                break;
+            }
+            case BottomRight: {
+                break;
+            }
+            case Bottom: {
+                //                testerRect.origin.x -= dx / 2;
+                break;
+            }
+            case BottomLeft: {
+                testerRect.origin.x -= dx;
+                break;
+            }
+            case Left: {
+                testerRect.origin.x -= dx;
+                testerRect.origin.y -= dy / 2;
+                break;
+            }
+                
+        }
+        
+        if (CGRectContainsRect(self.zoomingView.bounds, testerRect)) {
+            zoomRect = testerRect;
+        }
+        self.scrollView.frame = cropRect;
+        [self.scrollView zoomToRect:zoomRect animated:NO];
+        
+        [self layoutCropRectViewWithCropRect:cropRect];
+        
+    }
+    else {
+        // Case finishing zoom
+        scale = MIN(CGRectGetWidth(self.editingRect) / width, CGRectGetHeight(self.editingRect) / height);
+        
+        CGFloat scaledWidth = width * scale;
+        CGFloat scaledHeight = height * scale;
+        
+        cropRect = CGRectMake((CGRectGetWidth(self.bounds) - scaledWidth) / 2, (CGRectGetHeight(self.bounds) - scaledHeight) / 2, scaledWidth, scaledHeight);
+        zoomRect = [self convertRect:toRect toView:self.zoomingView];
+        
+        zoomRect.size.width = CGRectGetWidth(cropRect) / (self.scrollView.zoomScale * scale);
+        zoomRect.size.height = CGRectGetHeight(cropRect) / (self.scrollView.zoomScale * scale);
+    }
+    [UIView animateWithDuration:duration
+                          delay:0.0
+                        options:UIViewAnimationOptionBeginFromCurrentState
+                     animations:^{
+                         self.scrollView.frame = cropRect;
+                         [self.scrollView zoomToRect:zoomRect animated:NO];
+                         
+                         [self layoutCropRectViewWithCropRect:cropRect];
+                     } completion:^(BOOL finished) {
+                         
+                     }];
+    NSLog(@"Zoomed!");
 }
 
 #pragma mark -
