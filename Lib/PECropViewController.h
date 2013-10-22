@@ -17,6 +17,7 @@
 @property (nonatomic) CGFloat cropAspectRatio;
 
 @property (nonatomic) CGRect cropRect;
+@property (nonatomic) CGFloat rotationAngle;
 
 @end
 
